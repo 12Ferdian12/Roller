@@ -23,7 +23,7 @@ function MainPage() {
   useEffect(() => {
     fetchData();
   }, []);
-
+  console.log("Sesepuh cuy");
   return (
     <>
       <Navbar handleFetchData={fetchData} />
