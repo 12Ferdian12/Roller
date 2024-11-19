@@ -29,7 +29,7 @@ function MainPage() {
       <Navbar handleFetchData={fetchData} />
       <main className="container mx-auto px-4 md:px-8 lg:px-16 xl:px-20 2xl:px-24 mt-4">
         <div className="flex justify-center min-h-screen">
-          <div className="grid grid-cols-4 gap-2 md:gap-5">
+          <div className="grid grid-cols-8 gap-2 md:gap-5">
             {
               // Show loading if data is not fetched yet
               siswa.length === 0 ? (
@@ -38,7 +38,7 @@ function MainPage() {
                 </div>
               ) : (
                 Array.from({
-                  length: Math.ceil(siswa.length / 2),
+                  length: Math.ceil(siswa.length),
                 }).map((_, index) => (
                   <div
                     key={index}
@@ -52,19 +52,10 @@ function MainPage() {
                       <div className="flex flex-col items-center py-2">
                         <CgProfile size={20} />
                         <div className="text-sm text-center">
-                          {siswa[index * 2]?.title || "Name 1"}
+                          {siswa[index]?.title || "Name 1"}
                         </div>
                       </div>
-                      <div className="h-full w-[1px] bg-gray-300"></div>
-
-                      {index * 2 + 1 < siswa.length && (
-                        <div className="flex flex-col items-center py-2 ">
-                          <CgProfile size={20} />
-                          <div className="text-sm text-center">
-                            {siswa[index * 2 + 1]?.title || "Name 2"}
-                          </div>
-                        </div>
-                      )}
+                      <div className="h-full w-[1px] "></div>
                     </div>
                   </div>
                 ))
