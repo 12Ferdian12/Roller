@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import Modal from "../components/Modals";
 import Toastify from "toastify-js";
 
-function Navbar() {
+function Navbar({ handleFetchData }: { handleFetchData: () => void }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [code, setCode] = useState("");
   const [randomizeSuccess, setRandomizeSuccess] = useState(false);
@@ -34,6 +34,8 @@ function Navbar() {
         },
       }).showToast();
 
+      handleFetchData();
+
       setRandomizeSuccess(false);
     }
   }, [randomizeSuccess]);
@@ -48,6 +50,8 @@ function Navbar() {
 
   const handleSubmit = () => {
     setIsModalOpen(false);
+
+    console.log(code);
 
     if (code !== "test") {
       Toastify({
