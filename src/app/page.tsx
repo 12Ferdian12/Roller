@@ -4,7 +4,7 @@ import MainPage from "@/layout/Information";
 export default function Home() {
   return (
     <>
-      <MainPage />c
+      <MainPage />
     </>
   );
 }
