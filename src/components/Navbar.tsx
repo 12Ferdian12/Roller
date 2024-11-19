@@ -8,24 +8,17 @@ import Toastify from "toastify-js";
 function Navbar({ handleFetchData }: { handleFetchData: () => void }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [code, setCode] = useState("");
-  const [randomizeSuccess, setRandomizeSuccess] = useState(false);
 
-  useEffect(() => {
-    if (randomizeSuccess) {
-      const handleRandom = async () => {
-        console.log("test");
+  // Fetch data from API
+  const randomData = async () => {
+    try {
+      const response = await fetch("/api/random", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
 
-        const response = await fetch("/api/random", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
-        const data = await response.json();
-        console.log(data);
-      };
-
-      handleRandom();
       Toastify({
         text: "Successfully randomized",
         className: "info",
@@ -35,10 +28,10 @@ function Navbar({ handleFetchData }: { handleFetchData: () => void }) {
       }).showToast();
 
       handleFetchData();
-
-      setRandomizeSuccess(false);
+    } catch (error) {
+      console.error(error);
     }
-  }, [randomizeSuccess]);
+  };
 
   const handleOpenModal = () => {
     setIsModalOpen(true);
@@ -51,19 +44,18 @@ function Navbar({ handleFetchData }: { handleFetchData: () => void }) {
   const handleSubmit = () => {
     setIsModalOpen(false);
 
-    console.log(code);
-
-    if (code !== "test") {
+    if (code !== "AdMinSUanGar#72") {
       Toastify({
         text: "Code Invalid",
         style: {
-          background: "linear-gradient(to right, #00b09b, #96c93d)",
+          background: "linear-gradient(to right, #ff0000, #cc0000)",
         },
       }).showToast();
       return;
     }
 
-    setRandomizeSuccess(true);
+    setCode("");
+    randomData();
   };
 
   return (

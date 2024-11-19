@@ -17,7 +17,7 @@ export default function Modal({ isOpen, onClose, onSubmit, code, setCode }) {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
       <div className="bg-white p-6 border-2 rounded shadow-lg w-80">
-        <h2 className="text-lg font-semibold mb-4">Password</h2>
+        <h2 className="text-lg font-semibold mb-4">Code</h2>
         <input
           type="text"
           value={code}
