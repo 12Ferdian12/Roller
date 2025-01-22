@@ -7,11 +7,11 @@ export function POST(request) {
   const shuffleArray = (array) => {
     // Pisahkan absen 13 dan 23
     const specialPair = [
-      array.find((item) => item.absen === 13),
+      array.find((item) => item.absen === 20),
       array.find((item) => item.absen === 23),
     ];
     const otherStudents = array.filter(
-      (item) => item.absen !== 13 && item.absen !== 23
+      (item) => item.absen !== 20 && item.absen !== 23
     );
 
     // Shuffle siswa lain
