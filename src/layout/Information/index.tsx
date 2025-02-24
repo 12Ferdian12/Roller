@@ -52,7 +52,7 @@ function MainPage() {
                       <div className="flex flex-col items-center py-2">
                         <CgProfile size={20} />
                         <div className="text-sm text-center">
-                          {siswa[index]?.absen || "Name 1"}
+                          {siswa[index]?.title || "Name 1"}
                         </div>
                       </div>
                       <div className="h-full w-[1px] "></div>

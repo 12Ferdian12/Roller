@@ -21,7 +21,7 @@ export const NameList = [
   { absen: 20, title: "Marska" },
   { absen: 21, title: "Raina" },
   { absen: 22, title: "Ridhan" },
-  { absen: 23, title: "Arka" },
+  { absen: 23, title: "Ara" },
   { absen: 24, title: "Nabila" },
   { absen: 25, title: "Naurah" },
   { absen: 26, title: "Naya" },
@@ -35,6 +35,4 @@ export const NameList = [
   { absen: 34, title: "Tara" },
   { absen: 35, title: "Zafran" },
   { absen: 36, title: "Zaskia" },
-  { absen: 37, title: "##" },
-  { absen: 38, title: "#" },
 ];
