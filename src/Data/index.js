@@ -21,7 +21,7 @@ export const NameList = [
   { absen: 20, title: "Marska" },
   { absen: 21, title: "Raina" },
   { absen: 22, title: "Ridhan" },
-  { absen: 23, title: "Ara" },
+  { absen: 23, title: "Arka" },
   { absen: 24, title: "Nabila" },
   { absen: 25, title: "Naurah" },
   { absen: 26, title: "Naya" },
