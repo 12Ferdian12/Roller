@@ -35,4 +35,6 @@ export const NameList = [
   { absen: 34, title: "Tara" },
   { absen: 35, title: "Zafran" },
   { absen: 36, title: "Zaskia" },
+  { absen: 37, title: "#" },
+  { absen: 38, title: "#" },
 ];
