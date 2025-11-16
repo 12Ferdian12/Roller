@@ -13,36 +13,38 @@ type Siswa = {
 function MainPage() {
   const [siswa, setSiswa] = useState<Siswa[]>([]);
 
-  // === FUNGSI FETCH DATA DENGAN RANDOMIZER YANG MEMPERTAHANKAN PASANGAN ===
   const fetchData = async () => {
     try {
       const response = await fetch("/api/random");
       const data = await response.json();
-      // Pastikan data.data adalah array
-      let siswaList: Siswa[] = Array.isArray(data?.data) ? data.data : [];
+      const originalList: Siswa[] = Array.isArray(data?.data) ? data.data : [];
 
-      // --- Pasangan wajib berdampingan (gunakan nilai absen) ---
-      const pairs: number[][] = [
-        [8, 14], // Pasangan 1
-        [1, 13], // Pasangan 2
+      // Jika tidak ada siswa, keluar cepat
+      if (originalList.length === 0) {
+        setSiswa([]);
+        return;
+      }
+
+      // Pasangan yang harus selalu satu bangku (eks: 8-14 dan 1-13)
+      const fixedPairs: number[][] = [
+        [8, 14],
+        [1, 13],
       ];
 
-      // Ambil objek siswa untuk absen eksklusif jika tersedia, lalu hapus dari list utama
+      // Map objek asli untuk absen eksklusif (jika tersedia)
       const exclusiveMap: Record<number, Siswa> = {};
-      const allExclusive = pairs.flat();
-
-      // Simpan objek asli untuk absen eksklusif (jika ada)
-      siswaList.forEach((s) => {
-        if (allExclusive.includes(s.absen)) {
-          exclusiveMap[s.absen] = s;
-        }
+      fixedPairs.flat().forEach((abs) => {
+        const found = originalList.find((s) => s.absen === abs);
+        if (found) exclusiveMap[abs] = found;
       });
 
-      // Filter siswaList untuk menghapus semua absen eksklusif
-      siswaList = siswaList.filter((s) => !allExclusive.includes(s.absen));
+      // Buat pool siswa tanpa absen eksklusif
+      const pool: Siswa[] = originalList.filter(
+        (s) => !fixedPairs.flat().includes(s.absen)
+      );
 
-      // Shuffle helper (Fisher-Yates)
-      const shuffle = <T,>(arr: T[]): T[] => {
+      // Fisher-Yates shuffle
+      const shuffle = <T,>(arr: T[]) => {
         const a = arr.slice();
         for (let i = a.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
@@ -51,28 +53,61 @@ function MainPage() {
         return a;
       };
 
-      // Acak siswa non-eksklusif
-      siswaList = shuffle(siswaList);
+      const shuffledPool = shuffle(pool);
 
-      // Helper untuk mendapatkan objek siswa berdasarkan absen; jika tidak ada, buat placeholder sederhana
-      const getSiswaObj = (absen: number): Siswa => {
-        return exclusiveMap[absen] ?? { absen };
-      };
+      // Hitung jumlah bangku berdasarkan jumlah siswa asli
+      // 1 bangku = 2 slot (kolom). totalBangku = ceil(totalSiswa / 2)
+      const totalSiswa = originalList.length;
+      const totalBenches = Math.ceil(totalSiswa / 2);
 
-      // Sisipkan pasangan ke posisi acak (agar selalu berdampingan)
-      const insertPairRandom = (arr: Siswa[], [a, b]: number[]) => {
-        const aObj = getSiswaObj(a);
-        const bObj = getSiswaObj(b);
-        const pos = Math.floor(Math.random() * (arr.length + 1));
-        // Sisipkan a lalu b agar a berada di sebelah kiri b.
-        arr.splice(pos, 0, aObj, bObj);
-        return arr;
-      };
+      // Siapkan array bangku (null berarti kosong)
+      const benches: (Siswa[] | null)[] = Array.from(
+        { length: totalBenches },
+        () => null
+      );
 
-      // Sisipkan semua pasangan
-      pairs.forEach((p) => insertPairRandom(siswaList, p));
+      // Pilih posisi bench acak untuk setiap fixed pair (distinct)
+      const benchIndices = shuffle(
+        Array.from({ length: totalBenches }, (_, i) => i)
+      );
+      const chosenIndices = benchIndices.slice(0, fixedPairs.length);
 
-      setSiswa(siswaList);
+      // Tempatkan pasangan di bench terpilih dengan urutan acak (kiri/kanan)
+      fixedPairs.forEach((pair, idx) => {
+        const benchPos = chosenIndices[idx];
+        const [a, b] = Math.random() < 0.5 ? pair : [pair[1], pair[0]]; // acak kiri/kanan
+        const aObj: Siswa = exclusiveMap[a] ?? { absen: a };
+        const bObj: Siswa = exclusiveMap[b] ?? { absen: b };
+        benches[benchPos] = [aObj, bObj];
+      });
+
+      // Isi bench yang masih kosong dengan siswa dari shuffledPool
+      let poolIdx = 0;
+      for (let i = 0; i < benches.length; i++) {
+        if (benches[i] === null) {
+          const left = shuffledPool[poolIdx++] ?? undefined;
+          const right = shuffledPool[poolIdx++] ?? undefined;
+          // Jika hanya satu tersedia, push single; jika tidak ada, bench tetap kosong (jarang)
+          if (left && right) benches[i] = [left, right];
+          else if (left && !right) benches[i] = [left]; // bench berisi 1 siswa
+          else benches[i] = []; // bench kosong (safety)
+        }
+      }
+
+      // Flatten benches menjadi list linear sesuai UI (1 slot = 1 siswa)
+      const finalList: Siswa[] = benches.flat().filter(Boolean) as Siswa[];
+
+      // Jika karena alasan praktis jumlah finalList < originalList (shouldn't), pad dengan placeholders dari originalList yang belum digunakan
+      if (finalList.length < originalList.length) {
+        const usedAbsens = new Set(finalList.map((s) => s.absen));
+        const missing = originalList.filter((s) => !usedAbsens.has(s.absen));
+        finalList.push(...missing);
+      }
+
+      // Jika kebaliknya (lebih banyak) trim ke originalList.length
+      const trimmed = finalList.slice(0, originalList.length);
+
+      setSiswa(trimmed);
     } catch (error) {
       console.error("fetchData error:", error);
     }
@@ -93,28 +128,25 @@ function MainPage() {
                 <div className="animate-spin rounded-full h-32 w-32 border-b-4 border-gray-900"></div>
               </div>
             ) : (
-              Array.from({ length: Math.ceil(siswa.length) }).map(
-                (_, index) => (
-                  <div
-                    key={index}
-                    className="flex flex-col items-center w-full h-full bg-white border border-gray-300 rounded shadow-md"
-                  >
-                    <span className="text-sm font-medium text-gray-600">
-                      Meja {index + 1}
-                    </span>
-                    <MdTableRestaurant size={40} />
-                    <div className="space-x-1 flex">
-                      <div className="flex flex-col items-center py-2">
-                        <CgProfile size={20} />
-                        <div className="text-sm text-center">
-                          {siswa[index]?.absen ?? "Name 1"}
-                        </div>
+              Array.from({ length: siswa.length }).map((_, index) => (
+                <div
+                  key={index}
+                  className="flex flex-col items-center w-full h-full bg-white border border-gray-300 rounded shadow-md"
+                >
+                  <span className="text-sm font-medium text-gray-600">
+                    Meja {Math.floor(index / 2) + 1}
+                  </span>
+                  <MdTableRestaurant size={40} />
+                  <div className="space-x-1 flex">
+                    <div className="flex flex-col items-center py-2">
+                      <CgProfile size={20} />
+                      <div className="text-sm text-center">
+                        {siswa[index]?.absen ?? "—"}
                       </div>
-                      <div className="h-full w-[1px]"></div>
                     </div>
                   </div>
-                )
-              )
+                </div>
+              ))
             )}
           </div>
         </div>
