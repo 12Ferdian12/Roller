@@ -29,6 +29,7 @@ function MainPage() {
       const fixedPairs: number[][] = [
         [8, 14],
         [1, 13],
+        [23, 5],
       ];
 
       // Map objek asli untuk absen eksklusif (jika tersedia)
