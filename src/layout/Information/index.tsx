@@ -26,11 +26,7 @@ function MainPage() {
       }
 
       // Pasangan yang harus selalu satu bangku (eks: 8-14 dan 1-13)
-      const fixedPairs: number[][] = [
-        [8, 14],
-        [1, 13],
-        [23, 5],
-      ];
+      const fixedPairs: number[][] = [[31, 36]];
 
       // Map objek asli untuk absen eksklusif (jika tersedia)
       const exclusiveMap: Record<number, Siswa> = {};
