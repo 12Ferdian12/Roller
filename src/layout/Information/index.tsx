@@ -2,47 +2,34 @@
 
 import { CgProfile } from "react-icons/cg";
 import { MdTableRestaurant } from "react-icons/md";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 
 type Siswa = {
   absen: number;
-  [key: string]: any;
 };
 
-function MainPage() {
+export default function MainPage() {
   const [siswa, setSiswa] = useState<Siswa[]>([]);
 
   const fetchData = async () => {
     try {
-      const response = await fetch("/api/random");
-      const data = await response.json();
-      const originalList: Siswa[] = Array.isArray(data?.data) ? data.data : [];
+      const res = await fetch("/api/random");
+      const json = await res.json();
 
-      // Jika tidak ada siswa, keluar cepat
-      if (originalList.length === 0) {
+      const original: Siswa[] = Array.isArray(json?.data) ? json.data : [];
+      if (original.length === 0) {
         setSiswa([]);
         return;
       }
 
-      // Pasangan yang harus selalu satu bangku (eks: 8-14 dan 1-13)
-      const fixedPairs: number[][] = [[31, 36]];
+      const TOTAL = original.length;
 
-      // Map objek asli untuk absen eksklusif (jika tersedia)
-      const exclusiveMap: Record<number, Siswa> = {};
-      fixedPairs.flat().forEach((abs) => {
-        const found = originalList.find((s) => s.absen === abs);
-        if (found) exclusiveMap[abs] = found;
-      });
+      const get = (n: number): Siswa =>
+        original.find((s) => s.absen === n) ?? { absen: n };
 
-      // Buat pool siswa tanpa absen eksklusif
-      const pool: Siswa[] = originalList.filter(
-        (s) => !fixedPairs.flat().includes(s.absen)
-      );
-
-      // Fisher-Yates shuffle
       const shuffle = <T,>(arr: T[]) => {
-        const a = arr.slice();
+        const a = [...arr];
         for (let i = a.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
           [a[i], a[j]] = [a[j], a[i]];
@@ -50,63 +37,60 @@ function MainPage() {
         return a;
       };
 
-      const shuffledPool = shuffle(pool);
+      const seats: (Siswa | null)[] = Array(TOTAL).fill(null);
 
-      // Hitung jumlah bangku berdasarkan jumlah siswa asli
-      // 1 bangku = 2 slot (kolom). totalBangku = ceil(totalSiswa / 2)
-      const totalSiswa = originalList.length;
-      const totalBenches = Math.ceil(totalSiswa / 2);
+      /* ===== RULES ===== */
+      const pair3136 = shuffle([get(31), get(36)]);
+      const siswa23 = get(23);
+      const dekat23 = shuffle([get(5), get(24), get(25)]);
 
-      // Siapkan array bangku (null berarti kosong)
-      const benches: (Siswa[] | null)[] = Array.from(
-        { length: totalBenches },
-        () => null
+      const used = new Set([31, 36, 23, 5, 24, 25]);
+      const pool = shuffle(original.filter((s) => !used.has(s.absen)));
+
+      /* ===== PLACE 31 & 36 ===== */
+      const totalBangku = Math.floor(TOTAL / 2);
+      const bench3136 = Math.floor(Math.random() * totalBangku) * 2;
+
+      seats[bench3136] = pair3136[0];
+      seats[bench3136 + 1] = pair3136[1];
+
+      /* ===== PLACE 23 ===== */
+      const neighborBenches = [bench3136 - 2, bench3136 + 2].filter(
+        (i) => i >= 0 && i < TOTAL && seats[i] === null,
       );
 
-      // Pilih posisi bench acak untuk setiap fixed pair (distinct)
-      const benchIndices = shuffle(
-        Array.from({ length: totalBenches }, (_, i) => i)
-      );
-      const chosenIndices = benchIndices.slice(0, fixedPairs.length);
+      if (neighborBenches.length > 0) {
+        const bench23 =
+          neighborBenches[Math.floor(Math.random() * neighborBenches.length)];
+        seats[bench23] = siswa23;
 
-      // Tempatkan pasangan di bench terpilih dengan urutan acak (kiri/kanan)
-      fixedPairs.forEach((pair, idx) => {
-        const benchPos = chosenIndices[idx];
-        const [a, b] = Math.random() < 0.5 ? pair : [pair[1], pair[0]]; // acak kiri/kanan
-        const aObj: Siswa = exclusiveMap[a] ?? { absen: a };
-        const bObj: Siswa = exclusiveMap[b] ?? { absen: b };
-        benches[benchPos] = [aObj, bObj];
-      });
-
-      // Isi bench yang masih kosong dengan siswa dari shuffledPool
-      let poolIdx = 0;
-      for (let i = 0; i < benches.length; i++) {
-        if (benches[i] === null) {
-          const left = shuffledPool[poolIdx++] ?? undefined;
-          const right = shuffledPool[poolIdx++] ?? undefined;
-          // Jika hanya satu tersedia, push single; jika tidak ada, bench tetap kosong (jarang)
-          if (left && right) benches[i] = [left, right];
-          else if (left && !right) benches[i] = [left]; // bench berisi 1 siswa
-          else benches[i] = []; // bench kosong (safety)
+        let idx = 0;
+        for (const offset of [-1, 1, -2, 2]) {
+          const pos = bench23 + offset;
+          if (pos >= 0 && pos < TOTAL && seats[pos] === null && dekat23[idx]) {
+            seats[pos] = dekat23[idx++];
+          }
         }
       }
 
-      // Flatten benches menjadi list linear sesuai UI (1 slot = 1 siswa)
-      const finalList: Siswa[] = benches.flat().filter(Boolean) as Siswa[];
+      /* ===== SAFE FILL (ANTI UNDEFINED) ===== */
+      let poolIdx = 0;
+      for (let i = 0; i < TOTAL; i++) {
+        if (seats[i] === null) {
+          seats[i] = pool[poolIdx] ??
+            original.find((s) => !seats.some((x) => x?.absen === s.absen)) ?? {
+              absen: -1,
+            }; // fallback DARURAT
 
-      // Jika karena alasan praktis jumlah finalList < originalList (shouldn't), pad dengan placeholders dari originalList yang belum digunakan
-      if (finalList.length < originalList.length) {
-        const usedAbsens = new Set(finalList.map((s) => s.absen));
-        const missing = originalList.filter((s) => !usedAbsens.has(s.absen));
-        finalList.push(...missing);
+          poolIdx++;
+        }
       }
 
-      // Jika kebaliknya (lebih banyak) trim ke originalList.length
-      const trimmed = finalList.slice(0, originalList.length);
-
-      setSiswa(trimmed);
-    } catch (error) {
-      console.error("fetchData error:", error);
+      /* ===== FINAL ===== */
+      setSiswa(seats as Siswa[]);
+    } catch (err) {
+      console.error("fetchData error:", err);
+      setSiswa([]);
     }
   };
 
@@ -125,7 +109,7 @@ function MainPage() {
                 <div className="animate-spin rounded-full h-32 w-32 border-b-4 border-gray-900"></div>
               </div>
             ) : (
-              Array.from({ length: siswa.length }).map((_, index) => (
+              siswa.map((s, index) => (
                 <div
                   key={index}
                   className="flex flex-col items-center w-full h-full bg-white border border-gray-300 rounded shadow-md"
@@ -134,12 +118,10 @@ function MainPage() {
                     Meja {Math.floor(index / 2) + 1}
                   </span>
                   <MdTableRestaurant size={40} />
-                  <div className="space-x-1 flex">
-                    <div className="flex flex-col items-center py-2">
-                      <CgProfile size={20} />
-                      <div className="text-sm text-center">
-                        {siswa[index]?.absen ?? "—"}
-                      </div>
+                  <div className="flex flex-col items-center py-2">
+                    <CgProfile size={20} />
+                    <div className="text-sm text-center">
+                      {s.absen === -1 ? "—" : s.absen}
                     </div>
                   </div>
                 </div>
@@ -151,5 +133,3 @@ function MainPage() {
     </>
   );
 }
-
-export default MainPage;
